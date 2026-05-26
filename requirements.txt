@@ -1,6 +1,7 @@
 streamlit
 langgraph
 langchain-google-genai
+langchain-community
 pydantic
 pypdf
 faiss-cpu
