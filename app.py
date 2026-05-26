@@ -35,9 +35,9 @@ else:
 
 # 🔥 [핵심 변경] 실시간 구글 검색(Google Search Grounding) 기능을 엔진에 공식 장착
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-flash", 
+    model="gemini-2.5-pro",  # 🔥 최고급형 모델로 업그레이드
     temperature=0.1,
-    tools=[{"google_search": {}}] # 에이전트가 진짜 인터넷 서치를 수행함
+    tools=[{"google_search": {}}]
 )
 
 # ==========================================
@@ -76,14 +76,14 @@ with tab1:
         next_agent: str = Field(description="COMPANY, INDUSTRY, REPORT 중 선택")
 
     def orchestrator(state: AgentState):
-        time.sleep(5)
+        time.sleep(0.1)
         structured_llm = llm.with_structured_output(RouterDecision)
         prompt = f"미션: {state['task']}\n수집현황: {state['collected_data']}\n부족한 분석을 COMPANY나 INDUSTRY 중에서 고르거나, 다 됐으면 REPORT를 선택."
         response = structured_llm.invoke(prompt)
         return {**state, "next_agent": response.next_agent}
 
     def company_analyst(state: AgentState):
-        time.sleep(5)
+        time.sleep(0.1)
         st.write("🏭 기업 분석 에이전트가 DART 재무 제표 및 공시 데이터를 긁어오는 중...")
         raw_intelligence = execute_integrated_search(state['task'])
         prompt = f"지침: {company_p}\n대상: {state['task']}\n시스템 소스:\n{raw_intelligence}\n위 데이터를 기반으로 리서치를 수행할 것."
@@ -91,7 +91,7 @@ with tab1:
         return {**state, "collected_data": state["collected_data"] + [f"[기업분석 파트]:\n{response.content}"], "next_agent": "ORCHESTRATOR"}
 
     def industry_analyst(state: AgentState):
-        time.sleep(5)
+        time.sleep(0.1)
         st.write("📈 산업 분석 에이전트가 글로벌 웹 서치 및 경쟁사 Multiple을 분석 중...")
         raw_intelligence = execute_integrated_search(state['task'] + " 산업")
         prompt = f"지침: {industry_p}\n대상: {state['task']}\n시스템 소스:\n{raw_intelligence}\n성장성과 기술 격차를 도출할 것."
@@ -99,7 +99,7 @@ with tab1:
         return {**state, "collected_data": state["collected_data"] + [f"[산업분석 파트]:\n{response.content}"], "next_agent": "ORCHESTRATOR"}
 
     def report_expert(state: AgentState):
-        time.sleep(5)
+        time.sleep(0.1)
         st.write("✍️ 보고서 전문위원이 최종 검증 및 근거 표기 작업 중...")
         prompt = f"데이터: {state['collected_data']}\n가이드라인:\n{report_p}\n\n★주의: 분석에 활용된 모든 데이터에 [DART 공시], [구글 서치 결과] 등 명확한 근거(Reference) 섹션을 하단에 개설할 것."
         response = llm.invoke(prompt)
