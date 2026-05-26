@@ -66,14 +66,14 @@ class RouterDecision(BaseModel):
     next_agent: str = Field(description="COMPANY, INDUSTRY, REPORT 중 선택")
 
 def orchestrator(state: AgentState):
-    time.sleep(2)
+    time.sleep(5)
     structured_llm = llm.with_structured_output(RouterDecision)
     prompt = f"미션: {state['task']}\n수집현황: {state['collected_data']}\n부족한 분석을 COMPANY나 INDUSTRY 중에서 고르거나, 다 됐으면 REPORT를 선택."
     response = structured_llm.invoke(prompt)
     return {**state, "next_agent": response.next_agent}
 
 def company_analyst(state: AgentState):
-    time.sleep(2)
+    time.sleep(5)
     # [1번 폴더 적용] 구글 드라이브의 '기업정보 폴더'에서 키워드 검색
     drive_context = fetch_files_from_drive(data_folder_id, state['task'])
     
@@ -83,7 +83,7 @@ def company_analyst(state: AgentState):
     return {**state, "collected_data": state["collected_data"] + [f"[기업분석]:\n{response.content}"], "next_agent": "ORCHESTRATOR"}
 
 def industry_analyst(state: AgentState):
-    time.sleep(2)
+    time.sleep(5)
     # [1번 폴더 적용] 구글 드라이브의 '산업정보 폴더'에서 키워드 검색
     drive_context = fetch_files_from_drive(data_folder_id, state['task'] + " 산업")
     
@@ -93,7 +93,7 @@ def industry_analyst(state: AgentState):
     return {**state, "collected_data": state["collected_data"] + [f"[산업분석]:\n{response.content}"], "next_agent": "ORCHESTRATOR"}
 
 def report_expert(state: AgentState):
-    time.sleep(2)
+    time.sleep(5)
     # [2번 폴더 적용] 보고서 작성 전문가가 2번 폴더(보고서 스타일)를 참고함
     style_context = fetch_files_from_drive(style_folder_id, "레퍼런스")
     
