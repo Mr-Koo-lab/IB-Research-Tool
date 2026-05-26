@@ -1,0 +1,6 @@
+streamlit
+langgraph
+langchain-google-genai
+pydantic
+pypdf
+faiss-cpu
