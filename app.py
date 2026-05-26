@@ -12,7 +12,7 @@ from langchain_google_genai import GoogleGenerativeAIEmbeddings
 # 1. 웹 UI 설정 (Streamlit)
 # ==========================================
 st.set_page_config(page_title="IB AI Research Hub", layout="wide")
-st.title("🏢 AI 투자 리서치 본부 (7인 에이전트 시스템)")
+st.title("🏢 Mr.Koo Agent Research Tool")
 
 with st.sidebar:
     st.header("⚙️ 설정 및 학습 센터")
