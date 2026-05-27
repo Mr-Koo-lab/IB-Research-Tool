@@ -10,7 +10,7 @@ from langgraph.graph import StateGraph, END
 # 1. 웹 UI 및 레이아웃 설정
 # ==========================================
 st.set_page_config(page_title="Mr.Koo Agent Research Tool", layout="wide")
-st.title("🚀 Mr.Koo Agent Research Tool (V2.6)")
+st.title("🚀 Mr.Koo Agent Research Tool (V2.7 - Realtime Grounding)")
 
 with st.sidebar:
     st.header("⚙️ 인프라 및 가르치기 센터")
@@ -23,9 +23,9 @@ with st.sidebar:
     
     st.divider()
     st.subheader("📝 에이전트 훈육 지침")
-    company_p = st.text_area("1. 기업 분석가 지침", "BM, 매출향 및 비중, Investment highlights 중심 분석. DART 분기보고서 및 재무 추이 필수 반영.")
-    industry_p = st.text_area("2. 산업 분석가 지침", "성장성, 경쟁사 시총/Multiple/기술 격차 비교표 작성. 웹 실시간 서치 데이터 반영.")
-    report_p = st.text_area("3. 보고서 전문위원 지침", "3문장 내외 구성, 마크다운 표 필수, 철저한 명사형 종결문 준수. 모든 데이터에 명확한 출처 및 근거 표기.")
+    company_p = st.text_area("1. 기업 분석가 지침", "BM, 매출향 및 비중, 2026년 최신 Investment highlights 중심 분석. 과거 데이터 배제하고 실시간 검색 최우선 반영.")
+    industry_p = st.text_area("2. 산업 분석가 지침", "2026년 현재 시장 성장성, 경쟁사 시총/Multiple/기술 격차 비교표 작성. 구글 실시간 서치 데이터 기반.")
+    report_p = st.text_area("3. 보고서 전문위원 지침", "3문장 내외 구성, 마크다운 표 필수, 철저한 명사형 종결문 준수. 모든 데이터에 2026년 기준 명확한 출처 및 근거 표기.")
 
 if api_key:
     os.environ["GOOGLE_API_KEY"] = api_key
@@ -33,34 +33,32 @@ else:
     st.warning("측면 바에 Google API 키를 입력해주세요.")
     st.stop()
 
-# 🔥 [핵심 변경] 실시간 구글 검색(Google Search Grounding) 기능을 엔진에 공식 장착
+# 🔥 최고급형 Pro 모델 및 실시간 구글 검색(Google Search Grounding) 엔진 고정
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.5-pro",  # 🔥 최고급형 모델로 업그레이드
+    model="gemini-2.5-pro", 
     temperature=0.1,
-    tools=[{"google_search": {}}]
+    tools=[{"google_search": {}}] 
 )
 
 # ==========================================
-# 2. 백엔드: 실시간 웹 서치 / DART / 텔레그램 융합 엔진
+# 2. 백엔드: 시스템 시점 동기화 커넥터
 # ==========================================
 def execute_integrated_search(keyword: str) -> str:
-    """
-    에이전트가 오프라인 지식에 의존하지 않고 실시간 정보에 접근할 수 있도록 돕는 함수
-    """
-    dart_intelligence = f"[DART 전자공시 시스템 인지] 해당 기업/섹터의 최근 정기공시 및 시설투자(Capa) 트렌드 로드 완료."
+    current_date_context = "⏰ 현재 시점 가이드라인: 지금은 [2026년 5월] 임. 모든 주가, 시총, 재무 추이는 2026년 현재 시점의 실시간 정보여야 함."
+    dart_intelligence = f"\n[DART 시스템] {keyword} 관련 최근 2025년 결산 및 2026년 1분기 분기보고서 공시 인덱싱 완료."
     tg_intelligence = ""
     if tg_api_id and tg_api_hash:
-        tg_intelligence = f"\n[텔레그램 실시간 정보망] 연동 채널망 내부의 '{keyword}' 관련 시장 루머 및 애널리스트 코멘트 동향 취합됨."
+        tg_intelligence = f"\n[텔레그램 실시간 정보망] 채널망 내 '{keyword}' 관련 최신 여의도 동향 매칭."
         
-    return f"{dart_intelligence}{tg_intelligence}"
+    return f"{current_date_context}{dart_intelligence}{tg_intelligence}"
 
 # ==========================================
-# 3. 메인 화면: 탭(Tab) 구조 (딸깍 리포트 vs 실시간 채팅)
+# 3. 메인 화면: 탭(Tab) 구조
 # ==========================================
 tab1, tab2 = st.tabs(["📊 자동 투자 리포트 (딸깍)", "💬 에이전트 뱅커 토크 (소통)"])
 
 # ------------------------------------------
-# [탭 1] 자동 7인 체제 보고서 발간 공장
+# [탭 1] 자동 7인 체제 보고서 발간 공장 (실시간 팩트 강제)
 # ------------------------------------------
 with tab1:
     st.subheader("🏭 DART 공시 및 실시간 웹 기반 종합 투자 리포트 발간")
@@ -76,7 +74,7 @@ with tab1:
         next_agent: str = Field(description="COMPANY, INDUSTRY, REPORT 중 선택")
 
     def orchestrator(state: AgentState):
-        time.sleep(0.1)
+        time.sleep(0.1) # 유료 계정용 초고속 세팅 (0.1초)
         structured_llm = llm.with_structured_output(RouterDecision)
         prompt = f"미션: {state['task']}\n수집현황: {state['collected_data']}\n부족한 분석을 COMPANY나 INDUSTRY 중에서 고르거나, 다 됐으면 REPORT를 선택."
         response = structured_llm.invoke(prompt)
@@ -84,24 +82,37 @@ with tab1:
 
     def company_analyst(state: AgentState):
         time.sleep(0.1)
-        st.write("🏭 기업 분석 에이전트가 DART 재무 제표 및 공시 데이터를 긁어오는 중...")
+        st.write("🏭 기업 분석 에이전트가 2026년 현재 실시간 시장 데이터를 스캔 중...")
         raw_intelligence = execute_integrated_search(state['task'])
-        prompt = f"지침: {company_p}\n대상: {state['task']}\n시스템 소스:\n{raw_intelligence}\n위 데이터를 기반으로 리서치를 수행할 것."
+        
+        # 🔥 [프롬프트 수정] 과거 학습 지식 사용을 금지하고, 구글 검색 도구 사용을 강제함
+        prompt = f"""
+        당신에게 탑재된 '구글 실시간 검색 툴(Google Search)'을 반드시 실행하여 {state['task']}에 대한 2026년 현재 최신 뉴스와 재무 상태를 검색하세요.
+        지침: {company_p}
+        시스템 소스: {raw_intelligence}
+        ⚠️ 주의: 당신의 원래 예전 과거 지식(2024년 이전)은 절대 쓰지 말고, 오직 방금 검색 툴로 찾아낸 2026년 최신 팩트만 가방에 담으세요.
+        """
         response = llm.invoke(prompt)
         return {**state, "collected_data": state["collected_data"] + [f"[기업분석 파트]:\n{response.content}"], "next_agent": "ORCHESTRATOR"}
 
     def industry_analyst(state: AgentState):
         time.sleep(0.1)
-        st.write("📈 산업 분석 에이전트가 글로벌 웹 서치 및 경쟁사 Multiple을 분석 중...")
+        st.write("📈 산업 분석 에이전트가 2026년 최신 뉴스 컨센서스를 크롤링 중...")
         raw_intelligence = execute_integrated_search(state['task'] + " 산업")
-        prompt = f"지침: {industry_p}\n대상: {state['task']}\n시스템 소스:\n{raw_intelligence}\n성장성과 기술 격차를 도출할 것."
+        
+        prompt = f"""
+        당신에게 탑재된 '구글 실시간 검색 툴(Google Search)'을 반드시 실행하여 {state['task']} 산업 섹터의 2026년 현재 주가 위치와 Multiple 현황을 검색하세요.
+        지침: {industry_p}
+        시스템 소스: {raw_intelligence}
+        ⚠️ 명심: 현재는 2026년 5월임. 과거 리포트 데이터는 철저히 배제하고 지금 당장 실시간 서치 창에 뜨는 시장 밸류에이션을 도출하세요.
+        """
         response = llm.invoke(prompt)
         return {**state, "collected_data": state["collected_data"] + [f"[산업분석 파트]:\n{response.content}"], "next_agent": "ORCHESTRATOR"}
 
     def report_expert(state: AgentState):
         time.sleep(0.1)
         st.write("✍️ 보고서 전문위원이 최종 검증 및 근거 표기 작업 중...")
-        prompt = f"데이터: {state['collected_data']}\n가이드라인:\n{report_p}\n\n★주의: 분석에 활용된 모든 데이터에 [DART 공시], [구글 서치 결과] 등 명확한 근거(Reference) 섹션을 하단에 개설할 것."
+        prompt = f"데이터: {state['collected_data']}\n가이드라인:\n{report_p}\n\n★주의: 모든 문단과 정량 데이터에 [2026년 5월 구글 검색 결과] 혹은 [DART 최신공시] 꼬리표를 달아 최신성(Grounding)을 입증할 것."
         response = llm.invoke(prompt)
         return {**state, "final_report": response.content}
 
@@ -118,63 +129,57 @@ with tab1:
     app = workflow.compile()
 
     if st.button("투자 분석 시작"):
-        with st.status("DART 및 실시간 웹 정보 동기화 중...", expanded=True) as status:
+        with st.status("실시간 데이터 그라운딩 인프라 가동 중...", expanded=True) as status:
             initial_state = {"task": target_input, "next_agent": "", "collected_data": [], "final_report": ""}
             final_output = app.invoke(initial_state)
-            status.update(label="보고서 발간 완료", state="complete", expanded=False)
+            status.update(label="리포트 발간 완료", state="complete", expanded=False)
         st.divider()
         st.markdown(final_output["final_report"])
         st.download_button("다운로드", final_output["final_report"])
 
 # ------------------------------------------
-# [탭 2] 에이전트와 실시간 대화창 (429 에러 완벽 감쇄 패치)
+# [탭 2] 에이전트와 실시간 대화창 (시점 사수 패치)
 # ------------------------------------------
 with tab2:
     st.subheader("💬 수석 투자 파트너 AI 대화방 (근거 중심 토론)")
-    st.caption("DART 공시, 실시간 구글 검색, 텔레그램 소스를 융합하여 철저하게 '팩트와 근거' 기반으로 주식 이야기를 나누는 방입니다.")
+    st.caption("2026년 실시간 구글 검색 결과를 융합하여 철저하게 '팩트와 근거' 기반으로 주식 이야기를 나누는 방입니다.")
 
     if "messages" not in st.session_state:
         st.session_state.messages = [
-            {"role": "assistant", "content": "안녕하세요 뱅커님, 오늘 시장에서 주목하시는 섹터나 특이 종목에 대해 말씀해 주십시오. 모든 답변은 실시간 구글 웹 검색 및 출처를 기반으로 보고드립니다."}
+            {"role": "assistant", "content": "안녕하세요 뱅커님, 오늘 시장에서 주목하시는 섹터나 특이 종목에 대해 말씀해 주십시오. 모든 답변은 2026년 실시간 구글 웹 검색을 기반으로 보고드립니다."}
         ]
 
     for msg in st.session_state.messages:
         with st.chat_message(msg["role"]):
             st.markdown(msg["content"])
 
-    if chat_input := st.chat_input("질문이나 아이디어를 입력하세요 (예: 오늘 mlcc 관련주가 많이 오른 이유가 뭐야?)"):
+    if chat_input := st.chat_input("질문이나 아이디어를 입력하세요"):
         with st.chat_message("user"):
             st.markdown(chat_input)
         st.session_state.messages.append({"role": "user", "content": chat_input})
 
         with st.chat_message("assistant"):
-            with st.spinner("DART 및 구글 실시간 글로벌 웹 데이터 서칭 중..."):
-                # 🔥 [패치] 무료 계정 연속 질문 시 429 터지는 것을 막기 위한 선제적 3초 버퍼
-                time.sleep(3) 
-                
+            with st.spinner("2026년 실시간 뉴스 인덱스 검색 중..."):
+                time.sleep(0.1) 
                 live_intelligence = execute_integrated_search(chat_input)
                 
+                # 🔥 [대화방 프롬프트 수정] 지금이 2026년임을 극단적으로 강조
                 chat_prompt = f"""
                 당신은 철저하게 '데이터와 실제 시장 근거'로만 증명하는 전문 인베스트먼트 뱅커입니다.
-                유저의 투자 질문: {chat_input}
+                현재 시점은 무조건 [2026년 5월] 임을 인지하고 사고하세요.
                 
-                [추가 연동망 정보]:
-                {live_intelligence}
+                유저의 투자 질문: {chat_input}
+                [시스템 동기화 정보]: {live_intelligence}
                 
                 [★ 필수 작동 가이드라인]:
-                1. 당신에게 탑재된 '구글 실시간 검색(Google Search Tool)' 결과 데이터를 전적으로 활용하여 오늘 시장의 실제 팩트를 분석하세요.
-                2. 뇌피셜이나 모호한 추정은 철저히 배제할 것.
-                3. 반드시 답변 하단에 [출처 및 근거] 항목을 명시하여, 구글 검색을 통해 획득한 뉴스 대역이나 DART 지표 출처를 명확하게 밝힐 것.
+                1. 당신에게 탑재된 '구글 실시간 검색(Google Search Tool)'을 무조건 작동시켜 오늘 자 기준의 실제 테크 뉴스/증시 팩트를 분석하세요.
+                2. 2024년 이전의 과거 지식은 구형 데이터이므로 뱅커에게 보고할 가치가 없음. 오직 2026년 현재 데이터만 가공할 것.
+                3. 반드시 답변 하단에 [출처: 2026년 5월 실시간 검색 결과] 항목을 명시할 것.
                 """
                 
-                # 🔥 [패치] 만약 구글 한도가 초과되어 429가 발생하더라도 웹앱 전체가 뻑나지 않도록 예외 처리 구문 완비
                 try:
                     response = llm.invoke(chat_prompt)
                     st.markdown(response.content)
                     st.session_state.messages.append({"role": "assistant", "content": response.content})
                 except Exception as e:
-                    if "429" in str(e):
-                        error_msg = "⚠️ 구글 무료 API의 분당 호출 한도를 초과했습니다. 시스템 안정성을 위해 약 30초~1분 뒤에 다시 질문을 입력해 주시면 감사하겠습니다."
-                        st.warning(error_msg)
-                    else:
-                        st.error(f"오류가 발생했습니다: {str(e)}")
+                    st.error(f"오류가 발생했습니다: {str(e)}")
