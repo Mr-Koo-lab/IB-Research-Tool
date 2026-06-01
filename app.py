@@ -1,10 +1,19 @@
 import streamlit as st
 import os
 import time
+from dotenv import load_dotenv  # [인프라 패치] .env 자동 저장을 위한 라이브러리
 from typing import TypedDict, List
 from pydantic import BaseModel, Field
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langgraph.graph import StateGraph, END
+
+# ==========================================
+# 0. [인프라 패치] .env 파일에서 기존 입력값 자동 로드
+# ==========================================
+load_dotenv()
+default_google_key = os.getenv("GOOGLE_API_KEY", "")
+default_tg_id = os.getenv("TELEGRAM_API_ID", "")
+default_tg_hash = os.getenv("TELEGRAM_API_HASH", "")
 
 # ==========================================
 # 1. 웹 UI 및 레이아웃 설정
@@ -14,12 +23,14 @@ st.title("🚀 Mr.Koo Agent Research Tool (V2.7 - Realtime Grounding)")
 
 with st.sidebar:
     st.header("⚙️ 인프라 및 가르치기 센터")
-    api_key = st.text_input("Google API Key", type="password")
+    # [인프라 패치] value=default_google_key 매핑으로 자동화
+    api_key = st.text_input("Google API Key", value=default_google_key, type="password")
     
     st.divider()
     st.subheader("🛰️ 외부 인프라 연동망")
-    tg_api_id = st.text_input("Telegram API ID", placeholder="1234567")
-    tg_api_hash = st.text_input("Telegram API Hash", type="password", placeholder="abcdef123456...")
+    # [인프라 패치] value 매핑으로 자동화
+    tg_api_id = st.text_input("Telegram API ID", value=default_tg_id, placeholder="1234567")
+    tg_api_hash = st.text_input("Telegram API Hash", value=default_tg_hash, type="password", placeholder="abcdef123456...")
     
     st.divider()
     st.subheader("📝 에이전트 훈육 지침")
@@ -33,7 +44,7 @@ Strictly Private & Confidential
 
 Ⅰ. Executive Summary
 1. Deal 개요
-- 본 건은 [기업설명 및 시총]의 신규 발행 [사채 종류]에 투자하는 건임.
+- 本 건은 [기업설명 및 시총]의 신규 발행 [사채 종류]에 투자하는 건임.
 - [사채 주요 조건]: 전환(교환)주식, 지분율, 교환가액, 자금사용목적, 이자(쿠폰/YTM), 만기, 풋옵션/콜옵션, 주관사 정보를 반드시 마크다운 표나 리스트로 일목요연하게 정리할 것.
 
 2. 기업 분석
@@ -64,7 +75,7 @@ llm = ChatGoogleGenerativeAI(
 # 2. 백엔드: 시스템 시점 동기화 커넥터
 # ==========================================
 def execute_integrated_search(keyword: str) -> str:
-    current_date_context = "⏰ 현재 시점 가이드라인: 지금은 [2026년 5월] 임. 모든 주가, 시총, 재무 추이는 2026년 현재 시점의 실시간 정보여야 함."
+    current_date_context = "⏰ 현재 시점 가이드라인: 지금은 [2026년 6월] 임. 모든 주가, 시총, 재무 추이는 2026년 현재 시점의 실시간 정보여야 함."
     dart_intelligence = f"\n[DART 시스템] {keyword} 관련 최근 2025년 결산 및 2026년 1분기 분기보고서 공시 인덱싱 완료."
     tg_intelligence = ""
     if tg_api_id and tg_api_hash:
@@ -124,7 +135,7 @@ with tab1:
         당신에게 탑재된 '구글 실시간 검색 툴(Google Search)'을 반드시 실행하여 {state['task']} 산업 섹터의 2026년 현재 주가 위치와 Multiple 현황을 검색하세요.
         지침: {industry_p}
         시스템 소스: {raw_intelligence}
-        ⚠️ 명심: 현재는 2026년 5월임. 과거 리포트 데이터는 철저히 배제하고 지금 당장 실시간 서치 창에 뜨는 시장 밸류에이션을 도출하세요.
+        ⚠️ 명심: 현재는 2026년 6월임. 과거 리포트 데이터는 철저히 배제하고 지금 당장 실시간 서치 창에 뜨는 시장 밸류에이션을 도출하세요.
         """
         response = llm.invoke(prompt)
         return {**state, "collected_data": state["collected_data"] + [f"[산업분석 파트]:\n{response.content}"], "next_agent": "ORCHESTRATOR"}
@@ -132,7 +143,7 @@ with tab1:
     def report_expert(state: AgentState):
         time.sleep(0.1)
         st.write("✍️ 보고서 전문위원이 최종 검증 및 근거 표기 작업 중...")
-        prompt = f"데이터: {state['collected_data']}\n가이드라인:\n{report_p}\n\n★주의: 모든 문단과 정량 데이터에 [2026년 5월 구글 검색 결과] 혹은 [DART 최신공시] 꼬리표를 달아 최신성(Grounding)을 입증할 것."
+        prompt = f"데이터: {state['collected_data']}\n가이드라인:\n{report_p}\n\n★주의: 모든 문단과 정량 데이터에 [2026년 6월 구글 검색 결과] 혹은 [DART 최신공시] 꼬리표를 달아 최신성(Grounding)을 입증할 것."
         response = llm.invoke(prompt)
         return {**state, "final_report": response.content}
 
@@ -186,7 +197,7 @@ with tab2:
                 # 🔥 [대화방 프롬프트 수정] 지금이 2026년임을 극단적으로 강조
                 chat_prompt = f"""
                 당신은 철저하게 '데이터와 실제 시장 근거'로만 증명하는 전문 인베스트먼트 뱅커입니다.
-                현재 시점은 무조건 [2026년 5월] 임을 인지하고 사고하세요.
+                현재 시점은 무조건 [2026년 6월] 임을 인지하고 사고하세요.
                 
                 유저의 투자 질문: {chat_input}
                 [시스템 동기화 정보]: {live_intelligence}
@@ -194,7 +205,7 @@ with tab2:
                 [★ 필수 작동 가이드라인]:
                 1. 당신에게 탑재된 '구글 실시간 검색(Google Search Tool)'을 무조건 작동시켜 오늘 자 기준의 실제 테크 뉴스/증시 팩트를 분석하세요.
                 2. 2024년 이전의 과거 지식은 구형 데이터이므로 뱅커에게 보고할 가치가 없음. 오직 2026년 현재 데이터만 가공할 것.
-                3. 반드시 답변 하단에 [출처: 2026년 5월 실시간 검색 결과] 항목을 명시할 것.
+                3. 반드시 답변 하단에 [출처: 2026년 6월 실시간 검색 결과] 항목을 명시할 것.
                 """
                 
                 try:
