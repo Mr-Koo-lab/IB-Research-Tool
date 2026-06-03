@@ -167,12 +167,16 @@ def orchestrator(state: AgentState):
     workflow.add_edge("REPORT", END)
     app = workflow.compile()
 
-    if target_input:
+    # 1. 명시적인 가동 버튼 생성 및 변수 할당
+    submit_button = st.button("🚀 투자 분석 시작", use_container_width=True)
+
+    # 2. 버튼이 눌렸을 때만 백엔드 랭그래프 엔진 트리거
+    if submit_button and target_input:
         with st.status("🚀 실시간 데이터 그라운딩 인프라 가동 중...", expanded=True) as status:
             initial_state = {
-            "task": target_input,
-            "next_agent": "ORCHESTRATOR",
-            "collected_data": [],
+            "task": target_input, 
+            "next_agent": "ORCHESTRATOR", 
+            "collected_data": [], 
             "final_report": ""
             }
             final_output = app.invoke(initial_state)
@@ -180,7 +184,7 @@ def orchestrator(state: AgentState):
     
         st.divider()
         st.markdown(final_output["final_report"])
-        st.download_button("다운로드", final_output["final_report"])
+        st.download_button("📂 리포트 다운로드", final_output["final_report"], file_name="IB_Research_Report.md")
 
 # ------------------------------------------
 # [탭 2] 에이전트와 실시간 대화창 (시점 사수 패치)
