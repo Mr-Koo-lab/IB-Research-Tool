@@ -101,9 +101,11 @@ with tab1:
         collected_data: List[str]
         final_report: str
 
+    # 1. 지휘관의 의사결정 구조체 정의 (함수 바로 위에 배치하여 NameError 원천 차단)
     class RouterDecision(BaseModel):
-        next_agent: str = Field(description="COMPANY, INDUSTRY, REPORT 중 선택")
+    next_agent: str = Field(description="다음으로 실행할 에이전트 (COMPANY, INDUSTRY, REPORT 중 택1)")
 
+    # 2. 오케스트레이터 함수
     def orchestrator(state: AgentState):
         time.sleep(0.1)
         llm_with_tools = llm.bind_tools([RouterDecision], tool_choice="RouterDecision")
