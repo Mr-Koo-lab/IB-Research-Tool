@@ -167,25 +167,32 @@ def orchestrator(state: AgentState):
     workflow.add_edge("REPORT", END)
     app = workflow.compile()
 
-    # 1. 명시적인 가동 버튼 생성 및 변수 할당
-    submit_button = st.button("🚀 투자 분석 시작", use_container_width=True)
-
-    # 2. 버튼이 눌렸을 때만 백엔드 랭그래프 엔진 트리거
-    if submit_button and target_input:
-        with st.status("🚀 실시간 데이터 그라운딩 인프라 가동 중...", expanded=True) as status:
+  # 1. 사용자가 입력창에 검색어를 타이핑하고 엔터를 쳤는지 검증
+    if target_input:
+    # 2. 화면에 직관적인 가이드라인 표출 (뱅커님 전용 템플릿)
+        st.info(f"🔍 **검색 요청 확인:** '{target_input}'에 대한 실시간 DART 및 인프라 데이터를 수집 중입니다.")
+    
+    # 3. 에이전트 가동 스테이터스 바 런칭
+        with st.status("🚀 7인 체제 투자 분석 에이전트 가동 중...", expanded=True) as status:
             initial_state = {
             "task": target_input, 
             "next_agent": "ORCHESTRATOR", 
             "collected_data": [], 
             "final_report": ""
-            }
+        }
+        # 랭그래프 엔진 최종 구동
             final_output = app.invoke(initial_state)
-            status.update(label="리포트 발간 완료", state="complete", expanded=False)
+            status.update(label="✨ 투자 검토 보고서 발간 완료", state="complete", expanded=False)
     
+    # 4. 최종 리포트 화면 표출 및 다운로드 활성화
         st.divider()
-        st.markdown(final_output["final_report"])
-        st.download_button("📂 리포트 다운로드", final_output["final_report"], file_name="IB_Research_Report.md")
-
+        st.subheader(f"📊 {target_input} 최종 투자 검토 보고서")
+        st.markdown(final_output.get("final_report", "보고서 생성에 실패했습니다. 로그를 확인하세요."))
+        st.download_button(
+            label="📂 리포트 다운로드 (.md)", 
+            data=final_output.get("final_report", ""), 
+            file_name=f"IB_Research_Report_{target_input}.md"
+    )
 # ------------------------------------------
 # [탭 2] 에이전트와 실시간 대화창 (시점 사수 패치)
 # ------------------------------------------
