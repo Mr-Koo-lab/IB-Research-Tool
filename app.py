@@ -167,11 +167,17 @@ def orchestrator(state: AgentState):
     workflow.add_edge("REPORT", END)
     app = workflow.compile()
 
-    if st.button("투자 분석 시작"):
-        with st.status("실시간 데이터 그라운딩 인프라 가동 중...", expanded=True) as status:
-            initial_state = {"task": target_input, "next_agent": "", "collected_data": [], "final_report": ""}
+    if target_input:
+        with st.status("🚀 실시간 데이터 그라운딩 인프라 가동 중...", expanded=True) as status:
+            initial_state = {
+            "task": target_input,
+            "next_agent": "ORCHESTRATOR",
+            "collected_data": [],
+            "final_report": ""
+            }
             final_output = app.invoke(initial_state)
             status.update(label="리포트 발간 완료", state="complete", expanded=False)
+    
         st.divider()
         st.markdown(final_output["final_report"])
         st.download_button("다운로드", final_output["final_report"])
