@@ -101,32 +101,23 @@ with tab1:
         collected_data: List[str]
         final_report: str
 
-# 1. 지휘관의 의사결정 구조체 정의 (함수 바로 위에 배치하여 NameError 원천 차단)
-    class RouterDecision(BaseModel):
-        next_agent: str = Field(description="다음으로 실행할 에이전트 (COMPANY, INDUSTRY, REPORT 중 택1)")
+# 1. 지휘관의 의사결정 구조체 정의
+class RouterDecision(BaseModel):
+    next_agent: str = Field(description="다음으로 실행할 에이전트 (COMPANY, INDUSTRY, REPORT 중 택1)")
 
 # 2. 오케스트레이터 함수
-    def orchestrator(state: AgentState):
-        time.sleep(0.1)
-        llm_with_tools = llm.bind_tools([RouterDecision], tool_choice="RouterDecision")
-        prompt = f"미션: {state['task']}\n수집현황: {state['collected_data']}\n부족한 분석을 COMPANY나 INDUSTRY 중에서 고르거나, 다 됐으면 REPORT를 선택."
-        response = llm_with_tools.invoke(prompt)
+def orchestrator(state: AgentState):
+    time.sleep(0.1)
+    llm_with_tools = llm.bind_tools([RouterDecision], tool_choice="RouterDecision")
+    prompt = f"미션: {state['task']}\n수집현황: {state['collected_data']}\n부족한 분석을 COMPANY나 INDUSTRY 중에서 고르거나, 다 됐으면 REPORT를 선택."
+    response = llm_with_tools.invoke(prompt)
     
-        if response.tool_calls:
-            next_agent = response.tool_calls[0]['args']['next_agent']
-        else:
-            next_agent = "REPORT"
-        
-        return {**state, "next_agent": next_agent}
-    
-    # AI가 응답한 툴 파싱 결과 안전하게 추출
     if response.tool_calls:
         next_agent = response.tool_calls[0]['args']['next_agent']
     else:
-        next_agent = "REPORT"  # 예외 예방책
+        next_agent = "REPORT"
         
     return {**state, "next_agent": next_agent}
-    
     
     def company_analyst(state: AgentState):
         time.sleep(0.1)
