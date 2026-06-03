@@ -105,12 +105,21 @@ with tab1:
         next_agent: str = Field(description="COMPANY, INDUSTRY, REPORT 중 선택")
 
     def orchestrator(state: AgentState):
-        time.sleep(0.1) # 유료 계정용 초고속 세팅 (0.1초)
-        structured_llm = llm.with_structured_output(RouterDecision)
-        prompt = f"미션: {state['task']}\n수집현황: {state['collected_data']}\n부족한 분석을 COMPANY나 INDUSTRY 중에서 고르거나, 다 됐으면 REPORT를 선택."
-        response = structured_llm.invoke(prompt)
-        return {**state, "next_agent": response.next_agent}
-
+    time.sleep(0.1)
+    # [.bind_tools] 형식을 사용하여 구글 API와 Pydantic 객체 간의 충돌 원천 차단
+    llm_with_tools = llm.bind_tools([RouterDecision], tool_choice="RouterDecision")
+    prompt = f"미션: {state['task']}\n수집현황: {state['collected_data']}\n부족한 분석을 COMPANY나 INDUSTRY 중에서 고르거나, 다 됐으면 REPORT를 선택."
+    response = llm_with_tools.invoke(prompt)
+    
+    # AI가 응답한 툴 파싱 결과 안전하게 추출
+    if response.tool_calls:
+        next_agent = response.tool_calls[0]['args']['next_agent']
+    else:
+        next_agent = "REPORT"  # 예외 예방책
+        
+    return {**state, "next_agent": next_agent}
+    
+    
     def company_analyst(state: AgentState):
         time.sleep(0.1)
         st.write("🏭 기업 분석 에이전트가 2026년 현재 실시간 시장 데이터를 스캔 중...")
