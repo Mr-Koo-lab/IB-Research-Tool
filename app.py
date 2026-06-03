@@ -105,11 +105,17 @@ with tab1:
         next_agent: str = Field(description="COMPANY, INDUSTRY, REPORT 중 선택")
 
     def orchestrator(state: AgentState):
-    time.sleep(0.1)
-    # [.bind_tools] 형식을 사용하여 구글 API와 Pydantic 객체 간의 충돌 원천 차단
-    llm_with_tools = llm.bind_tools([RouterDecision], tool_choice="RouterDecision")
-    prompt = f"미션: {state['task']}\n수집현황: {state['collected_data']}\n부족한 분석을 COMPANY나 INDUSTRY 중에서 고르거나, 다 됐으면 REPORT를 선택."
-    response = llm_with_tools.invoke(prompt)
+        time.sleep(0.1)
+        llm_with_tools = llm.bind_tools([RouterDecision], tool_choice="RouterDecision")
+        prompt = f"미션: {state['task']}\n수집현황: {state['collected_data']}\n부족한 분석을 COMPANY나 INDUSTRY 중에서 고르거나, 다 됐으면 REPORT를 선택."
+        response = llm_with_tools.invoke(prompt)
+    
+        if response.tool_calls:
+            next_agent = response.tool_calls[0]['args']['next_agent']
+        else:
+            next_agent = "REPORT"
+        
+        return {**state, "next_agent": next_agent}
     
     # AI가 응답한 툴 파싱 결과 안전하게 추출
     if response.tool_calls:
