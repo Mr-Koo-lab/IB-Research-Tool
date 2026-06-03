@@ -23,12 +23,10 @@ st.title("🚀 Mr.Koo Agent Research Tool (V2.7 - Realtime Grounding)")
 
 with st.sidebar:
     st.header("⚙️ 인프라 및 가르치기 센터")
-    # [인프라 패치] value=default_google_key 매핑으로 자동화
     api_key = st.text_input("Google API Key", value=default_google_key, type="password")
     
     st.divider()
     st.subheader("🛰️ 외부 인프라 연동망")
-    # [인프라 패치] value 매핑으로 자동화
     tg_api_id = st.text_input("Telegram API ID", value=default_tg_id, placeholder="1234567")
     tg_api_hash = st.text_input("Telegram API Hash", value=default_tg_hash, type="password", placeholder="abcdef123456...")
     
@@ -47,7 +45,7 @@ Strictly Private & Confidential
 - 本 건은 [기업설명 및 시총]의 신규 발행 [사채 종류]에 투자하는 건임.
 - [사채 주요 조건]: 전환(교환)주식, 지분율, 교환가액, 자금사용목적, 이자(쿠폰/YTM), 만기, 풋옵션/콜옵션, 주관사 정보를 반드시 마크다운 표나 리스트로 일목요연하게 정리할 것.
 
-2. 기업 분석
+2. Corporate & Financials
 - BM, 생산능력, 최근 분기 실적 팩트 기술.
 - [회사 연결재무제표] 테이블 필수 작성: 최근 3개년 및 2025E, 2026E 매출액, 영업이익, 영업이익률(%), 당기순이익, 자산/부채/자본총계, 부채비율, 현금및현금성자산 정보를 가로형 마크다운 표로 구현할 것. (출처: 전자공시시스템 및 당사 리서치 추정 명시)
 
@@ -89,23 +87,18 @@ def execute_integrated_search(keyword: str) -> str:
 tab1, tab2 = st.tabs(["📊 자동 투자 리포트 (딸깍)", "💬 에이전트 뱅커 토크 (소통)"])
 
 # ------------------------------------------
-# [탭 1] 자동 7인 체제 보고서 발간 공장 (실시간 팩트 강제)
+# [탭 1] 자동 7인 체제 보고서 발간 공장
 # ------------------------------------------
-with tab1:
-    st.subheader("🏭 DART 공시 및 실시간 웹 기반 종합 투자 리포트 발간")
-    target_input = st.text_input("분석할 타겟 기업/산업 입력", placeholder="예: 대덕전자", key="report_target")
-    
-    class AgentState(TypedDict):
-        task: str
-        next_agent: str
-        collected_data: List[str]
-        final_report: str
+class AgentState(TypedDict):
+    task: str
+    next_agent: str
+    collected_data: List[str]
+    final_report: str
 
-# 1. 지휘관의 의사결정 구조체 정의
 class RouterDecision(BaseModel):
     next_agent: str = Field(description="다음으로 실행할 에이전트 (COMPANY, INDUSTRY, REPORT 중 택1)")
 
-# 2. 오케스트레이터 함수
+# [버그 패치]: 함수들을 상위 레벨로 완전히 분리하여 독립시킴
 def orchestrator(state: AgentState):
     time.sleep(0.1)
     llm_with_tools = llm.bind_tools([RouterDecision], tool_choice="RouterDecision")
@@ -116,45 +109,57 @@ def orchestrator(state: AgentState):
         next_agent = response.tool_calls[0]['args']['next_agent']
     else:
         next_agent = "REPORT"
-        
     return {**state, "next_agent": next_agent}
+
+def company_analyst(state: AgentState):
+    time.sleep(0.1)
+    st.write("🏭 기업 분석 에이전트가 2026년 현재 실시간 시장 데이터를 스캔 중...")
+    raw_intelligence = execute_integrated_search(state['task'])
     
-    def company_analyst(state: AgentState):
-        time.sleep(0.1)
-        st.write("🏭 기업 분석 에이전트가 2026년 현재 실시간 시장 데이터를 스캔 중...")
-        raw_intelligence = execute_integrated_search(state['task'])
-        
-        # 🔥 [프롬프트 수정] 과거 학습 지식 사용을 금지하고, 구글 검색 도구 사용을 강제함
-        prompt = f"""
-        당신에게 탑재된 '구글 실시간 검색 툴(Google Search)'을 반드시 실행하여 {state['task']}에 대한 2026년 현재 최신 뉴스와 재무 상태를 검색하세요.
-        지침: {company_p}
-        시스템 소스: {raw_intelligence}
-        ⚠️ 주의: 당신의 원래 예전 과거 지식(2024년 이전)은 절대 쓰지 말고, 오직 방금 검색 툴로 찾아낸 2026년 최신 팩트만 가방에 담으세요.
-        """
-        response = llm.invoke(prompt)
-        return {**state, "collected_data": state["collected_data"] + [f"[기업분석 파트]:\n{response.content}"], "next_agent": "ORCHESTRATOR"}
+    prompt = f"""
+    당신에게 탑재된 '구글 실시간 검색 툴(Google Search)'을 반드시 실행하여 {state['task']}에 대한 2026년 현재 최신 뉴스와 재무 상태를 검색하세요.
+    지침: {company_p}
+    시스템 소스: {raw_intelligence}
+    ⚠️ 주의: 당신의 원래 예전 과거 지식(2024년 이전)은 절대 쓰지 말고, 오직 방금 검색 툴로 찾아낸 2026년 최신 팩트만 가방에 담으세요.
+    """
+    response = llm.invoke(prompt)
+    return {**state, "collected_data": state["collected_data"] + [f"[기업분석 파트]:\n{response.content}"], "next_agent": "ORCHESTRATOR"}
 
-    def industry_analyst(state: AgentState):
-        time.sleep(0.1)
-        st.write("📈 산업 분석 에이전트가 2026년 최신 뉴스 컨센서스를 크롤링 중...")
-        raw_intelligence = execute_integrated_search(state['task'] + " 산업")
-        
-        prompt = f"""
-        당신에게 탑재된 '구글 실시간 검색 툴(Google Search)'을 반드시 실행하여 {state['task']} 산업 섹터의 2026년 현재 주가 위치와 Multiple 현황을 검색하세요.
-        지침: {industry_p}
-        시스템 소스: {raw_intelligence}
-        ⚠️ 명심: 현재는 2026년 6월임. 과거 리포트 데이터는 철저히 배제하고 지금 당장 실시간 서치 창에 뜨는 시장 밸류에이션을 도출하세요.
-        """
-        response = llm.invoke(prompt)
-        return {**state, "collected_data": state["collected_data"] + [f"[산업분석 파트]:\n{response.content}"], "next_agent": "ORCHESTRATOR"}
+def industry_analyst(state: AgentState):
+    time.sleep(0.1)
+    st.write("📈 산업 분석 에이전트가 2026년 최신 뉴스 컨센서스를 크롤링 중...")
+    raw_intelligence = execute_integrated_search(state['task'] + " 산업")
+    
+    prompt = f"""
+    당신에게 탑재된 '구글 실시간 검색 툴(Google Search)'을 반드시 실행하여 {state['task']} 산업 섹터의 2026년 현재 주가 위치와 Multiple 현황을 검색하세요.
+    지침: {industry_p}
+    시스템 소스: {raw_intelligence}
+    ⚠️ 명심: 현재는 2026년 6월임. 과거 리포트 데이터는 철저히 배제하고 지금 당장 실시간 서치 창에 뜨는 시장 밸류에이션을 도출하세요.
+    """
+    response = llm.invoke(prompt)
+    return {**state, "collected_data": state["collected_data"] + [f"[산업분석 파트]:\n{response.content}"], "next_agent": "ORCHESTRATOR"}
 
-    def report_expert(state: AgentState):
-        time.sleep(0.1)
-        st.write("✍️ 보고서 전문위원이 최종 검증 및 근거 표기 작업 중...")
-        prompt = f"데이터: {state['collected_data']}\n가이드라인:\n{report_p}\n\n★주의: 모든 문단과 정량 데이터에 [2026년 6월 구글 검색 결과] 혹은 [DART 최신공시] 꼬리표를 달아 최신성(Grounding)을 입증할 것."
-        response = llm.invoke(prompt)
-        return {**state, "final_report": response.content}
+def report_expert(state: AgentState):
+    time.sleep(0.1)
+    st.write("✍️ 보고서 전문위원이 최종 검증 및 근거 표기 작업 중...")
+    prompt = f"데이터: {state['collected_data']}\n가이드라인:\n{report_p}\n\n★주의: 모든 문단과 정량 데이터에 [2026년 6월 구글 검색 결과] 혹은 [DART 최신공시] 꼬리표를 달아 최신성(Grounding)을 입증할 것."
+    response = llm.invoke(prompt)
+    return {**state, "final_report": response.content}
 
+with tab1:
+    st.subheader("🏭 DART 공시 및 실시간 웹 기반 종합 투자 리포트 발간")
+    
+    # [UI 패치]: 뱅커 전용 입력 가이드라인박스 추가
+    st.markdown("""
+    > 💡 **권장 입력 가이드 예시:**
+    > * *예시 1:* `대덕전자`
+    > * *예시 2:* `마블 테크놀로지 (MRVL) 전환사채 발행 및 2026년 AI 칩셋 수요 분석`
+    > * *예시 3:* `비상장사 트리스 주가 및 2026년 우주항공 인프라 수혜 논리`
+    """)
+    
+    target_input = st.text_input("분석할 타겟 기업/산업 입력 (입력 후 엔터)", placeholder="예: 대덕전자", key="report_target")
+    
+    # 랭그래프 워크플로우 컴파일
     workflow = StateGraph(AgentState)
     workflow.add_node("ORCHESTRATOR", orchestrator)
     workflow.add_node("COMPANY", company_analyst)
@@ -167,34 +172,31 @@ def orchestrator(state: AgentState):
     workflow.add_edge("REPORT", END)
     app = workflow.compile()
 
-  # 1. 사용자가 입력창에 검색어를 타이핑하고 엔터를 쳤는지 검증
+    # [입력 및 실행 패치]: 엔터 반응 프로세스 완전 재설계
     if target_input:
-    # 2. 화면에 직관적인 가이드라인 표출 (뱅커님 전용 템플릿)
         st.info(f"🔍 **검색 요청 확인:** '{target_input}'에 대한 실시간 DART 및 인프라 데이터를 수집 중입니다.")
-    
-    # 3. 에이전트 가동 스테이터스 바 런칭
+        
         with st.status("🚀 7인 체제 투자 분석 에이전트 가동 중...", expanded=True) as status:
             initial_state = {
-            "task": target_input, 
-            "next_agent": "ORCHESTRATOR", 
-            "collected_data": [], 
-            "final_report": ""
-        }
-        # 랭그래프 엔진 최종 구동
+                "task": target_input, 
+                "next_agent": "ORCHESTRATOR", 
+                "collected_data": [], 
+                "final_report": ""
+            }
             final_output = app.invoke(initial_state)
             status.update(label="✨ 투자 검토 보고서 발간 완료", state="complete", expanded=False)
-    
-    # 4. 최종 리포트 화면 표출 및 다운로드 활성화
+        
         st.divider()
         st.subheader(f"📊 {target_input} 최종 투자 검토 보고서")
-        st.markdown(final_output.get("final_report", "보고서 생성에 실패했습니다. 로그를 확인하세요."))
+        st.markdown(final_output.get("final_report", "보고서 생성에 실패했습니다."))
         st.download_button(
             label="📂 리포트 다운로드 (.md)", 
             data=final_output.get("final_report", ""), 
             file_name=f"IB_Research_Report_{target_input}.md"
-    )
+        )
+
 # ------------------------------------------
-# [탭 2] 에이전트와 실시간 대화창 (시점 사수 패치)
+# [탭 2] 에이전트와 실시간 대화창
 # ------------------------------------------
 with tab2:
     st.subheader("💬 수석 투자 파트너 AI 대화방 (근거 중심 토론)")
@@ -219,7 +221,6 @@ with tab2:
                 time.sleep(0.1) 
                 live_intelligence = execute_integrated_search(chat_input)
                 
-                # 🔥 [대화방 프롬프트 수정] 지금이 2026년임을 극단적으로 강조
                 chat_prompt = f"""
                 당신은 철저하게 '데이터와 실제 시장 근거'로만 증명하는 전문 인베스트먼트 뱅커입니다.
                 현재 시점은 무조건 [2026년 6월] 임을 인지하고 사고하세요.
